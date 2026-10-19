@@ -1,0 +1,29 @@
+name: Validate Risk Analyzer
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+      - name: Generate sample report (HIGH is expected)
+        run: |
+          set +e
+          python -m risk_analyzer.analyzer --diff-file sample/example.diff --out-dir reports
+          status=$?
+          set -e
+          test "$status" -eq 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sample-risk-report
+          path: reports/
